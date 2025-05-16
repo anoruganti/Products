@@ -22,14 +22,9 @@ struct ProductListView: View {
                     
                     List(viewModel.productsList) { product in
                         HStack {
-                                                        
-                            
-                            // Implement Caching
-//                            AsyncImage(url: URL(string: product.thumbnail)) { image in
-//                                image.image?.resizable()
-//                                    .aspectRatio(contentMode: .fit)
-//                                    .frame(width: 80, height: 80)
-//                            }
+                            CachedImage(thumbnailString: product.thumbnail,
+                                        cacheType: .urlCache)
+                            .frame(width: 80, height: 80)
                             
                             VStack(alignment: .leading) {
                                 Text(product.title)
@@ -39,8 +34,6 @@ struct ProductListView: View {
                                     .font(.footnote)
                                     .lineLimit(3)
                             }
-                            
-                            
                         }
                     }
                     

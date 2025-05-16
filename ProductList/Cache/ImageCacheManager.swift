@@ -47,7 +47,7 @@ class ImageCacheManager{
     // Generate a unique file name for the image URL
     private func cacheFileURL(for urlString: String) -> URL {
         let imgURL = URL(string: urlString)!
-        let fileName = imgURL.lastPathComponent
+        let fileName = imgURL.absoluteString
         return diskCacheDirectory.appendingPathComponent(fileName)
     }
     
@@ -113,7 +113,12 @@ class ImageCacheManager{
         case .diskCache:
             // Check disk cache
             let fileURL = self.cacheFileURL(for: urlString)
-            cachedImgData = try Data(contentsOf: fileURL)
+            do{
+                cachedImgData = try Data(contentsOf: fileURL)
+            }catch{
+                print(error.localizedDescription)
+            }
+            
             
         case .urlCache:
             // Check if image is already in URL cache
