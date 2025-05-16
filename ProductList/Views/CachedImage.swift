@@ -9,8 +9,7 @@ import SwiftUI
 
 struct CachedImage: View {
     
-    let thumbnailString: String
-    let cacheType: CacheStorage
+    let productInfo: ProductImageDetails
     @State private var image: UIImage?
     
     var body: some View {
@@ -18,7 +17,6 @@ struct CachedImage: View {
             Image(uiImage: anImage)
                 .resizable()
         }else{
-            
             ProgressView()
                 .onAppear {
                     Task{
@@ -30,8 +28,7 @@ struct CachedImage: View {
     
     private func loadThumbnail() async{
         do{
-            if let thumbnail = await try ImageCacheManager.shared.loadImage(storageType: cacheType,
-                                                                            urlString: thumbnailString){
+            if let thumbnail = try await ImageCacheManager.shared.loadImage(imageInfo: productInfo){
                 await MainActor.run {
                     self.image = thumbnail
                 }
@@ -44,5 +41,7 @@ struct CachedImage: View {
 }
 
 #Preview {
-    CachedImage(thumbnailString: "https://cdn.dummyjson.com/product-images/beauty/essence-mascara-lash-princess/thumbnail.webp", cacheType: .diskCache)
+    
+    let imgInfo = ProductImageDetails(id: 1, thumbImg: "https://cdn.dummyjson.com/product-images/beauty/essence-mascara-lash-princess/thumbnail.webp", images: ["https://cdn.dummyjson.com/product-images/beauty/essence-mascara-lash-princess/thumbnail.webp"], storage: .diskCache)
+    CachedImage(productInfo: imgInfo)    
 }

@@ -22,8 +22,8 @@ struct ProductListView: View {
                     
                     List(viewModel.productsList) { product in
                         HStack {
-                            CachedImage(thumbnailString: product.thumbnail,
-                                        cacheType: .urlCache)
+                            let imgInfo = getProductImageDetails(productInfo: product)
+                            CachedImage(productInfo: imgInfo)
                             .frame(width: 80, height: 80)
                             
                             VStack(alignment: .leading) {
@@ -53,25 +53,14 @@ struct ProductListView: View {
             await viewModel.getProducts()
         }
     }
+    
+    func getProductImageDetails(productInfo: Product) -> ProductImageDetails{
+        return ProductImageDetails(id: productInfo.id,
+                                   thumbImg: productInfo.thumbnail,
+                                   images: productInfo.images,
+                                   storage: .diskCache)
+    }
 }
-
-
-//struct ThumbnailImage: View {
-//    
-//    @State var thumbImgUrl: String = ""
-//    
-//    var body: some View {
-//
-//        AsyncImage(url: URL(string: thumbImgUrl)) { image in
-//            image.resizable()
-//                .aspectRatio(contentMode: .fit)
-//                .frame(width: 80, height: 80)
-//        } placeholder: {
-//            ProgressView()
-//                .controlSize(.large)
-//        }
-//    }
-//}
 
 #Preview {
     ProductListView()

@@ -14,6 +14,13 @@ enum CacheStorage{
     case urlCache
 }
 
+struct ProductImageDetails{
+    let id: Int
+    let thumbImg: String
+    let images: [String]
+    let storage: CacheStorage
+}
+
 protocol ImageCaching{
     func getImageForURL(url: URL) async -> UIImage?
     func setImageForURL(image: UIImage, url: URL)
@@ -55,15 +62,21 @@ class ImageCacheManager{
         memoryCache.setObject(imgData as NSData, forKey: urlString as NSString)
     }
     
+    private func prepareURL(urlString: String) -> URL?{
+        return URL(string: urlString)
+    }
+    
     private func getImageFromData(imgData: Data) -> UIImage?{
         return UIImage(data: imgData)
     }
     
-    private func downloadImage(_ imgURLRequest: URLRequest, cache: CacheStorage) async throws -> Data?{
+    private func downloadImage(productImgInfo: ProductImageDetails) async throws -> Data?{
         
-        guard let imgUrlString = imgURLRequest.url?.absoluteString else {
+        let produtId = String(productImgInfo.id)
+        guard let imgURL = prepareURL(urlString: productImgInfo.thumbImg) else {
             throw ApiServiceError.invalidURL
         }
+        let imgURLRequest = URLRequest(url: imgURL)
         
         let (data, response) = try await URLSession.shared.data(for: imgURLRequest)
         guard let response = response as? HTTPURLResponse else {
@@ -76,15 +89,15 @@ class ImageCacheManager{
         let cacheResponse = CachedURLResponse(response: response, data: data)
         
         // Store in data in cache for faster subsequent access
-        switch cache{
+        switch productImgInfo.storage{
         case .memoryCache:
-            updateImgDataInMemory(imgData: data, urlString: imgUrlString)
+            updateImgDataInMemory(imgData: data, urlString: productImgInfo.thumbImg)
             
         case .diskCache:
             // Store in disk cache
             do{
                 // Write to disk
-                let fileURL = self.cacheFileURL(for: imgUrlString)
+                let fileURL = diskCacheDirectory.appendingPathComponent(produtId)
                 try data.write(to: fileURL)
             }catch{
                 print("Error storing image to disk: \(error)")
@@ -97,28 +110,30 @@ class ImageCacheManager{
         return data
     }
     
-    func loadImage(storageType: CacheStorage, urlString: String) async throws -> UIImage? {
+    func loadImage(imageInfo: ProductImageDetails) async throws -> UIImage? {
         
         var cachedImgData: Data?
-        let imgURL = URL(string: urlString)!
+        let produtId = String(imageInfo.id)
+        guard let imgURL = prepareURL(urlString: imageInfo.thumbImg) else {
+            throw ApiServiceError.invalidURL
+        }
         let imgURLRequest = URLRequest(url: imgURL)
 
-        switch storageType{
+        switch imageInfo.storage {
             
         case .memoryCache:
             // Check memory cache first
-            if let imageData = memoryCache.object(forKey: urlString as NSString){
+            if let imageData = memoryCache.object(forKey: imageInfo.thumbImg as NSString){
                 cachedImgData = imageData as Data
             }
         case .diskCache:
             // Check disk cache
-            let fileURL = self.cacheFileURL(for: urlString)
+            let fileURL = diskCacheDirectory.appendingPathComponent(produtId)
             do{
                 cachedImgData = try Data(contentsOf: fileURL)
             }catch{
-                print(error.localizedDescription)
+                print("Fetching from disks memory error - \(error.localizedDescription)")
             }
-            
             
         case .urlCache:
             // Check if image is already in URL cache
@@ -131,7 +146,7 @@ class ImageCacheManager{
             return getImageFromData(imgData: imageData)
         }else {
             do{
-                let imgData = try await downloadImage(imgURLRequest, cache: storageType)
+                let imgData = try await downloadImage(productImgInfo: imageInfo)
                 if let urlImgData = imgData{
                     return getImageFromData(imgData: urlImgData)
                 }
